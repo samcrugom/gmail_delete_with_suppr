@@ -1,23 +1,22 @@
 // ==UserScript==
-// @name         Gmail - Borrar con Suprimir (Fase Captura Total)
+// @name         Gmail - Borrar con Suprimir (Universal)
 // @namespace    http://tampermonkey.net/
-// @version      1.4
-// @description  Intercepta la tecla Suprimir en las capas internas de Gmail
+// @version      1.5
+// @description  Borra correos con Suprimir tanto en bandeja de entrada como en búsquedas/filtros
 // @author       samcrugom
 // @match        https://mail.google.com/*
 // @grant        none
-// @run-at       document-start
+// @run-at       document-idle
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    // Escuchamos en el 'document' en lugar de 'window' para estar un paso más cerca del DOM
     document.addEventListener('keydown', function(e) {
 
         if (e.key === 'Delete' || e.keyCode === 46) {
 
-            // Si estás redactando o buscando, respetamos la tecla
+            // Si estás escribiendo en la barra de búsqueda o redactando, no hagas nada
             const activeEl = document.activeElement;
             if (activeEl && (
                 activeEl.tagName === 'INPUT' ||
@@ -27,17 +26,21 @@
                 return;
             }
 
-            // Buscamos el botón de eliminar por el atributo "aria-label" que Gmail mete a piñón fijo
-            // Buscamos tanto en minúsculas, mayúsculas o selectores comunes de la barra de herramientas
-            const botonEliminar = document.querySelector('[aria-label*="Eliminar" i], [data-tooltip*="Eliminar" i], div[role="button"][act="10"]');
+            // Selector ampliado: busca el botón de eliminar normal, el de la vista de búsqueda y el código interno de Google (act="10")
+            const botonEliminar = document.querySelector([
+                '[aria-label*="Eliminar" i]',
+                '[data-tooltip*="Eliminar" i]',
+                'div[role="button"][act="10"]',
+                '[role="main"] div[role="button"][data-tooltip*="Eliminar" i]',
+                'div[data-tooltip*="Borrar" i]'
+            ].join(','));
 
             if (botonEliminar && (botonEliminar.offsetWidth > 0 || botonEliminar.offsetHeight > 0)) {
-                // Frenamos en seco que Gmail procese la tecla a su manera
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 e.stopPropagation();
 
-                // Simulación de clic completa para saltar protecciones
+                // Simulación de clic fulminante
                 ['mousedown', 'mouseup', 'click'].forEach(eventType => {
                     botonEliminar.dispatchEvent(new MouseEvent(eventType, {
                         bubbles: true,
@@ -46,8 +49,8 @@
                     }));
                 });
 
-                console.log('-> Script Tampermonkey: Botón eliminar pulsado con éxito.');
+                console.log('-> Correo eliminado en vista filtrada.');
             }
         }
-    }, true); // TRUE crítico para adelantarse a los scripts de Google
+    }, true); // Captura estricta activada
 })();
